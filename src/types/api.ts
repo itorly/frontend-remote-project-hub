@@ -1,0 +1,125 @@
+export interface AuthResponse {
+  token: string;
+  userId: number;
+  email: string;
+  displayName: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  displayName: string;
+  timezone?: string;
+}
+
+export interface OrganizationResponse {
+  id: number;
+  name: string;
+  description?: string;
+  role?: 'OWNER' | 'ADMIN' | 'MEMBER';
+}
+
+export interface CreateOrganizationRequest {
+  name: string;
+  description?: string;
+}
+
+export interface ProjectResponse {
+  id: number;
+  name: string;
+  description?: string;
+  status: 'ACTIVE' | 'ARCHIVED';
+  organizationId: number;
+}
+
+export interface CreateProjectRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateProjectRequest extends CreateProjectRequest {
+  status: 'ACTIVE' | 'ARCHIVED';
+}
+
+export interface BoardResponse {
+  projectId: number;
+  projectName: string;
+  columns: BoardColumnResponse[];
+}
+
+export interface BoardColumnResponse {
+  id: number;
+  name: string;
+  position: number;
+  tasks: TaskResponse[];
+}
+
+export interface CreateColumnRequest {
+  name: string;
+  position?: number;
+}
+
+export interface UpdateColumnRequest {
+  name?: string;
+  position?: number;
+}
+
+export interface TaskResponse {
+  id: number;
+  columnId: number;
+  title: string;
+  description?: string;
+  status: 'TODO' | 'IN_PROGRESS' | 'REVIEW' | 'DONE';
+  assigneeId?: number;
+  assigneeDisplayName?: string;
+  dueDate?: string;
+  tags?: string;
+}
+
+export interface CreateTaskRequest {
+  columnId: number;
+  title: string;
+  description?: string;
+  assigneeId?: number;
+  dueDate?: string;
+  tags?: string;
+}
+
+export interface UpdateTaskRequest {
+  title?: string;
+  description?: string;
+  assigneeId?: number;
+  clearAssignee?: boolean;
+  dueDate?: string;
+  clearDueDate?: boolean;
+  tags?: string;
+  clearTags?: boolean;
+}
+
+export interface MoveTaskRequest {
+  targetColumnId: number;
+}
+
+export interface ActivityLogResponse {
+  id: number;
+  projectId: number;
+  taskId?: number;
+  taskTitle?: string;
+  actionType:
+    | 'TASK_CREATED'
+    | 'TASK_UPDATED'
+    | 'TASK_MOVED'
+    | 'TASK_DELETED'
+    | 'PROJECT_CREATED'
+    | 'PROJECT_UPDATED';
+  oldValue?: string;
+  newValue?: string;
+  actorId?: number;
+  actorDisplayName?: string;
+  createdAt: string;
+}
