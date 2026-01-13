@@ -784,6 +784,70 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "createdAt,desc"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "COLUMN_CREATED",
+                "COLUMN_UPDATED",
+                "COLUMN_DELETED",
+                "TASK_CREATED",
+                "TASK_UPDATED",
+                "TASK_MOVED",
+                "TASK_DELETED",
+                "PROJECT_CREATED",
+                "PROJECT_UPDATED"
+              ]
+            }
+          },
+          {
+            "name": "taskId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "actorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
           }
         ],
         "responses": {
@@ -1262,10 +1326,24 @@
             "format": "int64",
             "description": "Target column ID to move the task into",
             "example": 21
+          },
+          "fromPosition": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Original position of the task in the source column",
+            "example": 0
+          },
+          "toPosition": {
+            "type": "integer",
+            "format": "int32",
+            "description": "New position of the task in the target column",
+            "example": 3
           }
         },
         "required": [
-          "targetColumnId"
+          "fromPosition",
+          "targetColumnId",
+          "toPosition"
         ]
       },
       "UpdateColumnRequest": {
@@ -1339,6 +1417,9 @@
             "type": "string",
             "description": "Type of action performed",
             "enum": [
+              "COLUMN_CREATED",
+              "COLUMN_UPDATED",
+              "COLUMN_DELETED",
               "TASK_CREATED",
               "TASK_UPDATED",
               "TASK_MOVED",
@@ -1347,6 +1428,30 @@
               "PROJECT_UPDATED"
             ],
             "example": "UPDATED"
+          },
+          "fromColumnId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Source column ID for move/column events",
+            "example": 12
+          },
+          "toColumnId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Target column ID for move/column events",
+            "example": 15
+          },
+          "fromPosition": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Original position for move/column events",
+            "example": 0
+          },
+          "toPosition": {
+            "type": "integer",
+            "format": "int32",
+            "description": "New position for move/column events",
+            "example": 3
           },
           "oldValue": {
             "type": "string",
@@ -1357,6 +1462,10 @@
             "type": "string",
             "description": "New value (if applicable)",
             "example": "In Progress"
+          },
+          "metadataJson": {
+            "type": "string",
+            "description": "Optional metadata payload (JSON string) for future extensions"
           },
           "actorId": {
             "type": "integer",
