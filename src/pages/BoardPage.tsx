@@ -59,8 +59,12 @@ export const BoardPage = () => {
   });
 
   const moveTask = useMutation({
-    mutationFn: (payload: { taskId: number; targetColumnId: number }) =>
-      boardApi.moveTask(Number(projectId), payload.taskId, { targetColumnId: payload.targetColumnId }),
+    mutationFn: (payload: { taskId: number; targetColumnId: number; fromPosition: number; toPosition: number }) =>
+      boardApi.moveTask(Number(projectId), payload.taskId, {
+        targetColumnId: payload.targetColumnId,
+        fromPosition: payload.fromPosition,
+        toPosition: payload.toPosition
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['board', projectId] })
   });
 
@@ -71,7 +75,12 @@ export const BoardPage = () => {
     const origin = active.data.current as { columnId: number; taskId: number } | undefined;
     if (!origin) return;
     if (origin.columnId === targetColumnId) return;
-    moveTask.mutate({ taskId: origin.taskId, targetColumnId });
+    const originColumn = columns.find((column) => column.id === origin.columnId);
+    const targetColumn = columns.find((column) => column.id === targetColumnId);
+    const fromPosition = originColumn ? originColumn.tasks.findIndex((task) => task.id === origin.taskId) : -1;
+    const toPosition = targetColumn ? targetColumn.tasks.length : 0;
+    if (fromPosition < 0) return;
+    moveTask.mutate({ taskId: origin.taskId, targetColumnId, fromPosition, toPosition });
   };
 
   const columns = useMemo(() => boardQuery.data?.columns || [], [boardQuery.data]);

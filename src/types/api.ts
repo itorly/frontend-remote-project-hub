@@ -29,6 +29,11 @@ export interface CreateOrganizationRequest {
   description?: string;
 }
 
+export interface UpdateOrganizationRequest {
+  name: string;
+  description?: string;
+}
+
 export interface ProjectResponse {
   id: number;
   name: string;
@@ -103,6 +108,8 @@ export interface UpdateTaskRequest {
 
 export interface MoveTaskRequest {
   targetColumnId: number;
+  fromPosition: number;
+  toPosition: number;
 }
 
 export interface ActivityLogResponse {
@@ -111,14 +118,22 @@ export interface ActivityLogResponse {
   taskId?: number;
   taskTitle?: string;
   actionType:
+    | 'COLUMN_CREATED'
+    | 'COLUMN_UPDATED'
+    | 'COLUMN_DELETED'
     | 'TASK_CREATED'
     | 'TASK_UPDATED'
     | 'TASK_MOVED'
     | 'TASK_DELETED'
     | 'PROJECT_CREATED'
     | 'PROJECT_UPDATED';
+  fromColumnId?: number;
+  toColumnId?: number;
+  fromPosition?: number;
+  toPosition?: number;
   oldValue?: string;
   newValue?: string;
+  metadataJson?: string;
   actorId?: number;
   actorDisplayName?: string;
   createdAt: string;

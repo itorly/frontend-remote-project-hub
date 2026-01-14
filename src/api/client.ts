@@ -13,6 +13,7 @@ import {
   ProjectResponse,
   RegisterRequest,
   TaskResponse,
+  UpdateOrganizationRequest,
   UpdateColumnRequest,
   UpdateProjectRequest,
   UpdateTaskRequest
@@ -53,6 +54,13 @@ export const organizationApi = {
   create: async (payload: CreateOrganizationRequest) => {
     const res = await api.post<OrganizationResponse>('/api/organizations', payload);
     return res.data;
+  },
+  update: async (organizationId: number, payload: UpdateOrganizationRequest) => {
+    const res = await api.put<OrganizationResponse>(`/api/organizations/${organizationId}`, payload);
+    return res.data;
+  },
+  remove: async (organizationId: number) => {
+    await api.delete(`/api/organizations/${organizationId}`);
   }
 };
 
