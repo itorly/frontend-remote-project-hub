@@ -191,6 +191,45 @@
       }
     },
     "/api/projects/{projectId}/tasks": {
+      "get": {
+        "tags": [
+          "Project Board"
+        ],
+        "summary": "List tasks",
+        "description": "Retrieve tasks for the specified project.",
+        "operationId": "getProjectTasks",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseTaskResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "Project Board"
@@ -348,6 +387,14 @@
               "type": "integer",
               "format": "int64"
             }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
           }
         ],
         "responses": {
@@ -356,10 +403,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectResponse"
-                  }
+                  "$ref": "#/components/schemas/PageResponseProjectResponse"
                 }
               }
             }
@@ -734,6 +778,56 @@
         }
       }
     },
+    "/api/projects/{projectId}/columns/{columnId}/tasks": {
+      "get": {
+        "tags": [
+          "Project Board"
+        ],
+        "summary": "List column tasks",
+        "description": "Retrieve tasks for the specified column.",
+        "operationId": "getColumnTasks",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "columnId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "pageable",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Pageable"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageResponseTaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/projects/{projectId}/board": {
       "get": {
         "tags": [
@@ -1086,6 +1180,12 @@
             "type": "string",
             "description": "Comma-separated tags for the task",
             "example": "frontend,design"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Position of the task within its column",
+            "example": 0
           }
         }
       },
@@ -1364,6 +1464,54 @@
           }
         }
       },
+      "Pageable": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PageResponseTaskResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "BoardResponse": {
         "type": "object",
         "properties": {
@@ -1483,6 +1631,33 @@
             "format": "date-time",
             "description": "Timestamp of the activity in ISO-8601 UTC format",
             "example": "2024-09-10T10:15:30Z"
+          }
+        }
+      },
+      "PageResponseProjectResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       }
