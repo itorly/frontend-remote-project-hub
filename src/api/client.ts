@@ -10,6 +10,8 @@ import {
   LoginRequest,
   MoveTaskRequest,
   OrganizationResponse,
+  PageResponse,
+  Pageable,
   ProjectResponse,
   RegisterRequest,
   TaskResponse,
@@ -65,8 +67,11 @@ export const organizationApi = {
 };
 
 export const projectApi = {
-  list: async (organizationId: number) => {
-    const res = await api.get<ProjectResponse[]>(`/api/organizations/${organizationId}/projects`);
+  list: async (organizationId: number, pageable: Pageable) => {
+    const res = await api.get<PageResponse<ProjectResponse>>(
+      `/api/organizations/${organizationId}/projects`,
+      { params: pageable }
+    );
     return res.data;
   },
   create: async (organizationId: number, payload: CreateProjectRequest) => {
@@ -115,6 +120,12 @@ export const boardApi = {
   },
   deleteTask: async (projectId: number, taskId: number) => {
     await api.delete(`/api/projects/${projectId}/tasks/${taskId}`);
+  },
+  listTasks: async (projectId: number, pageable: Pageable) => {
+    const res = await api.get<PageResponse<TaskResponse>>(`/api/projects/${projectId}/tasks`, {
+      params: pageable
+    });
+    return res.data;
   },
   getActivity: async (projectId: number) => {
     const res = await api.get<ActivityLogResponse[]>(`/api/projects/${projectId}/activity`);

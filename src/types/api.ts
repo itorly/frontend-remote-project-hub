@@ -84,6 +84,7 @@ export interface TaskResponse {
   assigneeDisplayName?: string;
   dueDate?: string;
   tags?: string;
+  position?: number;
 }
 
 export interface CreateTaskRequest {
@@ -137,4 +138,18 @@ export interface ActivityLogResponse {
   actorId?: number;
   actorDisplayName?: string;
   createdAt: string;
+}
+
+export interface Pageable {
+  page: number;
+  size: number;
+  sort?: string[];
+}
+
+export interface PageResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalItems: number;
+  totalPages: number;
 }

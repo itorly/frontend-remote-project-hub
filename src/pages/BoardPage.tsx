@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -28,6 +28,8 @@ export const BoardPage = () => {
   const queryClient = useQueryClient();
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState<null | number>(null);
+  const [taskPage, setTaskPage] = useState(0);
+  const taskPageSize = 8;
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -54,6 +56,7 @@ export const BoardPage = () => {
     mutationFn: (payload: CreateTaskRequest) => boardApi.createTask(Number(projectId), payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['board', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
       setIsTaskModalOpen(null);
     }
   });
@@ -65,7 +68,10 @@ export const BoardPage = () => {
         fromPosition: payload.fromPosition,
         toPosition: payload.toPosition
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['board', projectId] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['board', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks', projectId] });
+    }
   });
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -84,6 +90,19 @@ export const BoardPage = () => {
   };
 
   const columns = useMemo(() => boardQuery.data?.columns || [], [boardQuery.data]);
+
+  const tasksQuery = useQuery({
+    queryKey: ['project-tasks', projectId, taskPage, taskPageSize],
+    queryFn: () => boardApi.listTasks(Number(projectId), { page: taskPage, size: taskPageSize }),
+    enabled: Boolean(projectId)
+  });
+
+  const tasksPage = tasksQuery.data;
+  const tasks = tasksPage?.items ?? [];
+
+  useEffect(() => {
+    setTaskPage(0);
+  }, [projectId]);
 
   if (boardQuery.isError) {
     return (
@@ -127,6 +146,14 @@ export const BoardPage = () => {
           </div>
         </div>
       </DndContext>
+
+      <TaskList
+        entries={tasks}
+        isLoading={tasksQuery.isLoading}
+        pageInfo={tasksPage}
+        onNext={() => setTaskPage((page) => page + 1)}
+        onPrevious={() => setTaskPage((page) => Math.max(0, page - 1))}
+      />
 
       <ActivityFeed entries={activityQuery.data || []} />
 
@@ -258,6 +285,76 @@ const TaskForm = ({
     </form>
   );
 };
+
+const TaskList = ({
+  entries,
+  isLoading,
+  pageInfo,
+  onNext,
+  onPrevious
+}: {
+  entries: TaskResponse[];
+  isLoading: boolean;
+  pageInfo?: { page: number; totalPages: number; totalItems: number };
+  onNext: () => void;
+  onPrevious: () => void;
+}) => (
+  <div className="card">
+    <div className="section-title">
+      <h2>All tasks</h2>
+      <span className="badge">Paginated</span>
+    </div>
+    {isLoading && <p className="text-muted">Loading tasks…</p>}
+    {!isLoading && entries.length === 0 && <p className="text-muted">No tasks found for this project yet.</p>}
+    <div className="grid" style={{ gap: '0.75rem' }}>
+      {entries.map((task) => (
+        <div
+          key={task.id}
+          style={{
+            padding: '0.75rem',
+            borderRadius: 12,
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0'
+          }}
+        >
+          <div className="flex space-between">
+            <div style={{ fontWeight: 700 }}>{task.title}</div>
+            <span className="badge">{task.status}</span>
+          </div>
+          {task.description && (
+            <div className="text-muted" style={{ fontSize: '0.9rem' }}>
+              {task.description}
+            </div>
+          )}
+          <div className="flex" style={{ marginTop: '0.35rem' }}>
+            {task.assigneeDisplayName && <span className="tag">Assignee: {task.assigneeDisplayName}</span>}
+            {task.tags && <span className="tag">{task.tags}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+    {pageInfo && pageInfo.totalPages > 1 && (
+      <div className="flex space-between" style={{ marginTop: '1rem' }}>
+        <div className="text-muted">
+          Page {pageInfo.page + 1} of {pageInfo.totalPages} • {pageInfo.totalItems} tasks
+        </div>
+        <div className="flex">
+          <button className="button secondary" type="button" disabled={pageInfo.page === 0} onClick={onPrevious}>
+            Previous
+          </button>
+          <button
+            className="button secondary"
+            type="button"
+            disabled={pageInfo.page >= pageInfo.totalPages - 1}
+            onClick={onNext}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+);
 
 const ActivityFeed = ({ entries }: { entries: ActivityLogResponse[] }) => (
   <div className="card">

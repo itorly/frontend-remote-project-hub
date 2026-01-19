@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { CreateOrganizationRequest, OrganizationResponse, ProjectResponse } from
 
 export const OrganizationsPage = () => {
   const [selectedOrg, setSelectedOrg] = useState<number | null>(null);
+  const [projectPage, setProjectPage] = useState(0);
+  const projectPageSize = 6;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -21,14 +23,20 @@ export const OrganizationsPage = () => {
   });
 
   const projectsQuery = useQuery({
-    queryKey: ['projects', selectedOrg],
-    queryFn: () => projectApi.list(selectedOrg!),
+    queryKey: ['projects', selectedOrg, projectPage, projectPageSize],
+    queryFn: () => projectApi.list(selectedOrg!, { page: projectPage, size: projectPageSize }),
     enabled: Boolean(selectedOrg)
   });
 
   const orgForm = useForm<CreateOrganizationRequest>({ defaultValues: { name: '' } });
 
   const organizations = useMemo(() => orgQuery.data || [], [orgQuery.data]);
+  const projectsPage = projectsQuery.data;
+  const projects = projectsPage?.items ?? [];
+
+  useEffect(() => {
+    setProjectPage(0);
+  }, [selectedOrg]);
 
   return (
     <div className="grid" style={{ gap: '1.5rem' }}>
@@ -81,11 +89,11 @@ export const OrganizationsPage = () => {
         </div>
         {!selectedOrg && <p className="text-muted">Select an organization to view its projects.</p>}
         {selectedOrg && projectsQuery.isLoading && <p className="text-muted">Loading projects…</p>}
-        {selectedOrg && projectsQuery.data && projectsQuery.data.length === 0 && (
+        {selectedOrg && projectsQuery.data && projects.length === 0 && (
           <p className="text-muted">No projects yet. Create one below.</p>
         )}
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-          {projectsQuery.data?.map((project: ProjectResponse) => (
+          {projects.map((project: ProjectResponse) => (
             <div key={project.id} className="card" style={{ border: '1px solid #e2e8f0' }}>
               <div className="flex space-between">
                 <div>
@@ -106,6 +114,31 @@ export const OrganizationsPage = () => {
             </div>
           ))}
         </div>
+        {projectsPage && projectsPage.totalPages > 1 && (
+          <div className="flex space-between" style={{ marginTop: '1rem' }}>
+            <div className="text-muted">
+              Page {projectsPage.page + 1} of {projectsPage.totalPages} • {projectsPage.totalItems} projects
+            </div>
+            <div className="flex">
+              <button
+                className="button secondary"
+                type="button"
+                disabled={projectsPage.page === 0 || projectsQuery.isLoading}
+                onClick={() => setProjectPage((page) => Math.max(0, page - 1))}
+              >
+                Previous
+              </button>
+              <button
+                className="button secondary"
+                type="button"
+                disabled={projectsPage.page >= projectsPage.totalPages - 1 || projectsQuery.isLoading}
+                onClick={() => setProjectPage((page) => page + 1)}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
         {selectedOrg && <ProjectCreateForm organizationId={selectedOrg} />}
       </div>
     </div>
