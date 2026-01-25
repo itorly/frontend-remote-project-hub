@@ -41,6 +41,10 @@ export const LoginPage = () => {
             Unable to sign in. Please check your credentials.
           </div>
         )}
+        <p className="text-muted" style={{ marginTop: '1rem' }}>
+          Access tokens are stored in local storage to persist sessions. For higher security you can keep tokens in
+          memory and rely on refresh tokens, at the cost of logging out on tab refresh.
+        </p>
         <p style={{ marginTop: '1rem' }}>
           New here? <Link to="/register">Create an account</Link>
         </p>
