@@ -458,7 +458,7 @@
           "Authentication"
         ],
         "summary": "Register a user",
-        "description": "Create a user account and return an access token.",
+        "description": "Create a user account and return access and refresh tokens.",
         "operationId": "register",
         "requestBody": {
           "content": {
@@ -484,13 +484,70 @@
         }
       }
     },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Refresh access token",
+        "description": "Rotate refresh token and issue a new access token.",
+        "operationId": "refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout",
+        "description": "Revoke the current refresh token.",
+        "operationId": "logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
           "Authentication"
         ],
         "summary": "User login",
-        "description": "Authenticate with email and password to receive an access token.",
+        "description": "Authenticate with email and password to receive tokens.",
         "operationId": "login",
         "requestBody": {
           "content": {
@@ -1059,21 +1116,29 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "description": "Organization ID",
+            "example": 12
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Organization name",
+            "example": "Acme Corporation"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Organization description",
+            "example": "Primary organization for enterprise projects"
           },
           "role": {
             "type": "string",
+            "description": "Role of the current user in the organization",
             "enum": [
               "OWNER",
               "ADMIN",
               "MEMBER"
-            ]
+            ],
+            "example": "OWNER"
           }
         }
       },
@@ -1322,10 +1387,15 @@
       "AuthResponse": {
         "type": "object",
         "properties": {
-          "token": {
+          "accessToken": {
             "type": "string",
             "description": "JWT access token",
             "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token",
+            "example": "r1YtX2p0..."
           },
           "userId": {
             "type": "integer",
@@ -1344,6 +1414,30 @@
             "example": "Jordan"
           }
         }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
       },
       "LoginRequest": {
         "type": "object",
