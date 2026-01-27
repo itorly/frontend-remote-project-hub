@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware';
 import { AuthResponse } from '../types/api';
 
 type AuthState = {
-  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
   displayName?: string;
   email?: string;
   userId?: number;
@@ -14,24 +15,40 @@ type AuthState = {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      token: undefined,
+      accessToken: undefined,
+      refreshToken: undefined,
       displayName: undefined,
       email: undefined,
       userId: undefined,
       setAuth: (payload) =>
         set({
-          token: payload.token,
+          accessToken: payload.accessToken,
+          refreshToken: payload.refreshToken,
           displayName: payload.displayName,
           email: payload.email,
           userId: payload.userId
         }),
-      clear: () => set({ token: undefined, displayName: undefined, email: undefined, userId: undefined })
+      clear: () =>
+        set({
+          accessToken: undefined,
+          refreshToken: undefined,
+          displayName: undefined,
+          email: undefined,
+          userId: undefined
+        })
     }),
     {
       name: 'rph-auth',
-      partialize: (state) => ({ token: state.token, displayName: state.displayName, email: state.email, userId: state.userId })
+      partialize: (state) => ({
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        displayName: state.displayName,
+        email: state.email,
+        userId: state.userId
+      })
     }
   )
 );
 
-export const getAuthToken = () => useAuthStore.getState().token;
+export const getAuthToken = () => useAuthStore.getState().accessToken;
+export const getRefreshToken = () => useAuthStore.getState().refreshToken;

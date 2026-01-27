@@ -7,12 +7,14 @@ import {
   CreateOrganizationRequest,
   CreateProjectRequest,
   CreateTaskRequest,
+  LogoutRequest,
   LoginRequest,
   MoveTaskRequest,
   OrganizationResponse,
   PageResponse,
   Pageable,
   ProjectResponse,
+  RefreshRequest,
   RegisterRequest,
   TaskResponse,
   UpdateOrganizationRequest,
@@ -20,9 +22,16 @@ import {
   UpdateProjectRequest,
   UpdateTaskRequest
 } from '../types/api';
-import { getAuthToken, useAuthStore } from '../state/auth-store';
+import { getAuthToken, getRefreshToken, useAuthStore } from '../state/auth-store';
 
 const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+const authApiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
   headers: {
     'Content-Type': 'application/json'
@@ -39,8 +48,25 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error?.response?.status === 401) {
+  async (error) => {
+    const originalRequest = error?.config as (typeof error.config & { _retry?: boolean }) | undefined;
+    if (error?.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      const refreshToken = getRefreshToken();
+      if (refreshToken) {
+        originalRequest._retry = true;
+        try {
+          const res = await authApiClient.post<AuthResponse>('/api/auth/refresh', { refreshToken });
+          const { setAuth } = useAuthStore.getState();
+          setAuth(res.data);
+          originalRequest.headers = {
+            ...originalRequest.headers,
+            Authorization: `Bearer ${res.data.accessToken}`
+          };
+          return api(originalRequest);
+        } catch (refreshError) {
+          // fall through to clear auth
+        }
+      }
       const { clear } = useAuthStore.getState();
       clear();
       if (window.location.pathname !== '/login') {
@@ -59,6 +85,13 @@ export const authApi = {
   register: async (data: RegisterRequest) => {
     const res = await api.post<AuthResponse>('/api/auth/register', data);
     return res.data;
+  },
+  refresh: async (data: RefreshRequest) => {
+    const res = await authApiClient.post<AuthResponse>('/api/auth/refresh', data);
+    return res.data;
+  },
+  logout: async (data: LogoutRequest) => {
+    await authApiClient.post('/api/auth/logout', data);
   }
 };
 

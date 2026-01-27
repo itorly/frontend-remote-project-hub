@@ -5,6 +5,9 @@ import { useAuth } from '../state/auth-context';
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const { displayName, email, logout } = useAuth();
   const navigate = useNavigate();
+  const handleLogout = () => {
+    void logout();
+  };
 
   return (
     <div>
@@ -35,7 +38,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               <div style={{ fontWeight: 600 }}>{displayName || 'Authenticated User'}</div>
               <div className="text-muted" style={{ fontSize: '0.9rem' }}>{email}</div>
             </div>
-            <button className="button" onClick={logout}>Log out</button>
+            <button className="button" onClick={handleLogout}>Log out</button>
           </div>
         </div>
       </header>

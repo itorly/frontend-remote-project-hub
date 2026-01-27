@@ -1,15 +1,17 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo } from 'react';
+import { authApi } from '../api/client';
 import { AuthResponse } from '../types/api';
 import { useAuthStore } from './auth-store';
 
 interface AuthContextValue {
-  token?: string;
+  accessToken?: string;
+  refreshToken?: string;
   displayName?: string;
   email?: string;
   userId?: number;
   isAuthenticated: boolean;
   setAuth: (auth: AuthResponse) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -18,19 +20,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const store = useAuthStore();
 
   useEffect(() => {
-    if (!store.token) return;
+    if (!store.accessToken) return;
     // On token changes we could preload user profile; not implemented here.
-  }, [store.token]);
+  }, [store.accessToken]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      token: store.token,
+      accessToken: store.accessToken,
+      refreshToken: store.refreshToken,
       displayName: store.displayName,
       email: store.email,
       userId: store.userId,
-      isAuthenticated: Boolean(store.token),
+      isAuthenticated: Boolean(store.accessToken),
       setAuth: store.setAuth,
-      logout: store.clear
+      logout: async () => {
+        try {
+          if (store.refreshToken) {
+            await authApi.logout({ refreshToken: store.refreshToken });
+          }
+        } finally {
+          store.clear();
+          if (window.location.pathname !== '/login') {
+            window.location.assign('/login');
+          }
+        }
+      }
     }),
     [store]
   );

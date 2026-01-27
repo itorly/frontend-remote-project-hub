@@ -1,5 +1,6 @@
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   userId: number;
   email: string;
   displayName: string;
@@ -15,6 +16,14 @@ export interface RegisterRequest {
   password: string;
   displayName: string;
   timezone?: string;
+}
+
+export interface RefreshRequest {
+  refreshToken: string;
+}
+
+export interface LogoutRequest {
+  refreshToken: string;
 }
 
 export interface OrganizationResponse {
