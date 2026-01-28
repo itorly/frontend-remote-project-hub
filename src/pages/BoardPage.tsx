@@ -1,25 +1,14 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  useDroppable,
-  useSensor,
-  useSensors
-} from '@dnd-kit/core';
-import { useDraggable } from '@dnd-kit/core';
-import { CSS } from '@dnd-kit/utilities';
+import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { boardApi } from '../api/client';
-import {
-  ActivityLogResponse,
-  BoardColumnResponse,
-  BoardResponse,
-  CreateTaskRequest,
-  TaskResponse
-} from '../types/api';
-import { useForm } from 'react-hook-form';
+import { ActivityLogResponse, BoardResponse, CreateTaskRequest } from '../types/api';
+import { ActivityFeed } from '../components/board/ActivityFeed';
+import { ColumnList } from '../components/board/ColumnList';
+import { CreateColumnModal } from '../components/board/CreateColumnModal';
+import { CreateTaskModal } from '../components/board/CreateTaskModal';
+import { TaskList } from '../components/board/TaskList';
 
 export const BoardPage = () => {
   const { projectId } = useParams();
@@ -130,21 +119,11 @@ export const BoardPage = () => {
       {boardQuery.isLoading && <p className="text-muted">Loading board…</p>}
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="board">
-          {columns.map((column) => (
-            <ColumnCard
-              key={column.id}
-              column={column}
-              onAddTask={() => setIsTaskModalOpen(column.id)}
-              isDragging={moveTask.isLoading}
-            />
-          ))}
-          <div className="card" style={{ border: '2px dashed #cbd5e1', display: 'grid', placeItems: 'center' }}>
-            <button className="button secondary" onClick={() => setIsColumnModalOpen(true)}>
-              + New column
-            </button>
-          </div>
-        </div>
+        <ColumnList
+          columns={columns}
+          onAddTask={(columnId) => setIsTaskModalOpen(columnId)}
+          onCreateColumn={() => setIsColumnModalOpen(true)}
+        />
       </DndContext>
 
       <TaskList
@@ -157,249 +136,20 @@ export const BoardPage = () => {
 
       <ActivityFeed entries={activityQuery.data || []} />
 
-      {isColumnModalOpen && (
-        <Modal title="Create column" onClose={() => setIsColumnModalOpen(false)}>
-          <ColumnForm onSubmit={(values) => createColumn.mutate(values)} isSubmitting={createColumn.isLoading} />
-        </Modal>
-      )}
+      <CreateColumnModal
+        isOpen={isColumnModalOpen}
+        onClose={() => setIsColumnModalOpen(false)}
+        isSubmitting={createColumn.isLoading}
+        onSubmit={(values) => createColumn.mutate(values)}
+      />
 
-      {isTaskModalOpen && (
-        <Modal title="Create task" onClose={() => setIsTaskModalOpen(null)}>
-          <TaskForm
-            columnId={isTaskModalOpen}
-            onSubmit={(values) => createTask.mutate(values)}
-            isSubmitting={createTask.isLoading}
-          />
-        </Modal>
-      )}
+      <CreateTaskModal
+        isOpen={isTaskModalOpen !== null}
+        columnId={isTaskModalOpen}
+        onClose={() => setIsTaskModalOpen(null)}
+        isSubmitting={createTask.isLoading}
+        onSubmit={(values) => createTask.mutate(values)}
+      />
     </div>
   );
 };
-
-const ColumnCard = ({ column, onAddTask }: { column: BoardColumnResponse; onAddTask: () => void; isDragging?: boolean }) => {
-  const { setNodeRef, isOver } = useDroppable({ id: `column-${column.id}` });
-  return (
-    <div
-      ref={setNodeRef}
-      className="card"
-      style={{
-        border: isOver ? '2px solid #6366f1' : '1px solid #e2e8f0',
-        minHeight: 200,
-        background: isOver ? '#eef2ff' : 'white'
-      }}
-    >
-      <div className="column-header">
-        <div>
-          <div style={{ fontWeight: 700 }}>{column.name}</div>
-          <div className="text-muted" style={{ fontSize: '0.9rem' }}>
-            {column.tasks.length} tasks
-          </div>
-        </div>
-        <button className="button secondary" onClick={onAddTask}>
-          + Task
-        </button>
-      </div>
-      <div className="grid" style={{ marginTop: '0.75rem' }}>
-        {column.tasks.map((task) => (
-          <TaskCard key={task.id} task={task} columnId={column.id} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const TaskCard = ({ task, columnId }: { task: TaskResponse; columnId: number }) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `task-${task.id}`,
-    data: { columnId, taskId: task.id }
-  });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    boxShadow: isDragging ? '0 20px 50px rgba(15,23,42,0.15)' : '0 10px 30px rgba(15,23,42,0.08)',
-    border: '1px solid #e2e8f0',
-    background: 'white',
-    borderRadius: 12,
-    padding: '0.75rem'
-  } as const;
-
-  return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <div style={{ fontWeight: 700 }}>{task.title}</div>
-      {task.description && (
-        <div className="text-muted" style={{ fontSize: '0.9rem' }}>
-          {task.description.slice(0, 140)}
-        </div>
-      )}
-      <div className="flex" style={{ marginTop: '0.35rem' }}>
-        <span className="badge">{task.status}</span>
-        {task.tags && <span className="tag">{task.tags}</span>}
-      </div>
-    </div>
-  );
-};
-
-const ColumnForm = ({ onSubmit, isSubmitting }: { onSubmit: (payload: { name: string }) => void; isSubmitting: boolean }) => {
-  const { register, handleSubmit } = useForm<{ name: string }>({ defaultValues: { name: '' } });
-  return (
-    <form onSubmit={handleSubmit((values) => onSubmit(values))}>
-      <div className="form-row">
-        <label>Name</label>
-        <input className="input" {...register('name', { required: true })} />
-      </div>
-      <button className="button" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creating…' : 'Create column'}
-      </button>
-    </form>
-  );
-};
-
-const TaskForm = ({
-  columnId,
-  onSubmit,
-  isSubmitting
-}: {
-  columnId: number;
-  onSubmit: (payload: CreateTaskRequest) => void;
-  isSubmitting: boolean;
-}) => {
-  const { register, handleSubmit } = useForm<CreateTaskRequest>({ defaultValues: { columnId } });
-
-  return (
-    <form onSubmit={handleSubmit((values) => onSubmit({ ...values, columnId }))}>
-      <div className="form-row">
-        <label>Title</label>
-        <input className="input" {...register('title', { required: true })} />
-      </div>
-      <div className="form-row">
-        <label>Description</label>
-        <textarea className="input" rows={3} {...register('description')} />
-      </div>
-      <div className="form-row">
-        <label>Tags (comma separated)</label>
-        <input className="input" placeholder="design,frontend" {...register('tags')} />
-      </div>
-      <button className="button" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creating…' : 'Create task'}
-      </button>
-    </form>
-  );
-};
-
-const TaskList = ({
-  entries,
-  isLoading,
-  pageInfo,
-  onNext,
-  onPrevious
-}: {
-  entries: TaskResponse[];
-  isLoading: boolean;
-  pageInfo?: { page: number; totalPages: number; totalItems: number };
-  onNext: () => void;
-  onPrevious: () => void;
-}) => (
-  <div className="card">
-    <div className="section-title">
-      <h2>All tasks</h2>
-      <span className="badge">Paginated</span>
-    </div>
-    {isLoading && <p className="text-muted">Loading tasks…</p>}
-    {!isLoading && entries.length === 0 && <p className="text-muted">No tasks found for this project yet.</p>}
-    <div className="grid" style={{ gap: '0.75rem' }}>
-      {entries.map((task) => (
-        <div
-          key={task.id}
-          style={{
-            padding: '0.75rem',
-            borderRadius: 12,
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0'
-          }}
-        >
-          <div className="flex space-between">
-            <div style={{ fontWeight: 700 }}>{task.title}</div>
-            <span className="badge">{task.status}</span>
-          </div>
-          {task.description && (
-            <div className="text-muted" style={{ fontSize: '0.9rem' }}>
-              {task.description}
-            </div>
-          )}
-          <div className="flex" style={{ marginTop: '0.35rem' }}>
-            {task.assigneeDisplayName && <span className="tag">Assignee: {task.assigneeDisplayName}</span>}
-            {task.tags && <span className="tag">{task.tags}</span>}
-          </div>
-        </div>
-      ))}
-    </div>
-    {pageInfo && pageInfo.totalPages > 1 && (
-      <div className="flex space-between" style={{ marginTop: '1rem' }}>
-        <div className="text-muted">
-          Page {pageInfo.page + 1} of {pageInfo.totalPages} • {pageInfo.totalItems} tasks
-        </div>
-        <div className="flex">
-          <button className="button secondary" type="button" disabled={pageInfo.page === 0} onClick={onPrevious}>
-            Previous
-          </button>
-          <button
-            className="button secondary"
-            type="button"
-            disabled={pageInfo.page >= pageInfo.totalPages - 1}
-            onClick={onNext}
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-);
-
-const ActivityFeed = ({ entries }: { entries: ActivityLogResponse[] }) => (
-  <div className="card">
-    <div className="section-title">
-      <h2>Recent activity</h2>
-      <span className="badge">Live</span>
-    </div>
-    {entries.length === 0 && <p className="text-muted">No activity yet. Finish a few moves to see updates.</p>}
-    <div className="grid" style={{ gap: '0.75rem' }}>
-      {entries.map((item) => (
-        <div
-          key={item.id}
-          style={{
-            padding: '0.75rem',
-            borderRadius: 12,
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0'
-          }}
-        >
-          <div className="flex space-between">
-            <div style={{ fontWeight: 700 }}>{item.actionType}</div>
-            <span className="text-muted" style={{ fontSize: '0.85rem' }}>
-              {new Date(item.createdAt).toLocaleString()}
-            </span>
-          </div>
-          {item.taskTitle && <div>{item.taskTitle}</div>}
-          <div className="text-muted" style={{ fontSize: '0.9rem' }}>
-            {item.actorDisplayName || 'Unknown user'} • {item.oldValue ? `${item.oldValue} → ${item.newValue}` : item.newValue}
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const Modal = ({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) => (
-  <div className="modal-backdrop" role="dialog">
-    <div className="card modal-card">
-      <div className="flex space-between" style={{ marginBottom: '0.5rem' }}>
-        <h3>{title}</h3>
-        <button className="button secondary" onClick={onClose}>
-          Close
-        </button>
-      </div>
-      {children}
-    </div>
-  </div>
-);

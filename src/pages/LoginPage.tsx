@@ -41,6 +41,10 @@ export const LoginPage = () => {
             Unable to sign in. Please check your credentials.
           </div>
         )}
+        <div className="text-muted" style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
+          Security note: this demo persists tokens in local storage for quick reloads. Memory-only storage reduces XSS
+          risk but requires re-authentication after refresh.
+        </div>
         <p style={{ marginTop: '1rem' }}>
           New here? <Link to="/register">Create an account</Link>
         </p>
