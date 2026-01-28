@@ -49,6 +49,10 @@ export const RegisterPage = () => {
             Unable to create account. Please try again.
           </div>
         )}
+        <div className="text-muted" style={{ marginTop: '0.75rem', fontSize: '0.85rem' }}>
+          Security note: tokens are stored in local storage for persistence in this demo. For stronger protection
+          against XSS, memory-only storage can be used at the cost of losing sessions on refresh.
+        </div>
         <p style={{ marginTop: '1rem' }}>
           Already registered? <Link to="/login">Login</Link>
         </p>
