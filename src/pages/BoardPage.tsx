@@ -131,7 +131,7 @@ export const BoardPage = () => {
         isLoading={tasksQuery.isLoading}
         pageInfo={tasksPage}
         onNext={() => setTaskPage((page) => page + 1)}
-        onPrevious={() => setTaskPage((page) => Math.max(0, page - 1))}
+        onPrevious={() => setTaskPage((page) => Math.max(1, page - 1))}
       />
 
       <ActivityFeed entries={activityQuery.data || []} />
