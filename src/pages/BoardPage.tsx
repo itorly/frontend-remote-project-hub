@@ -18,7 +18,7 @@ export const BoardPage = () => {
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState<null | number>(null);
   const [taskPage, setTaskPage] = useState(0);
-  const taskPageSize = 8;
+  const taskPageSize = 5;
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
