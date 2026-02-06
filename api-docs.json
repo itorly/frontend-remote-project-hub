@@ -35,6 +35,10 @@
     {
       "name": "Project Board",
       "description": "Endpoints for managing project boards, columns, and tasks."
+    },
+    {
+      "name": "Organization Members",
+      "description": "Manage organization membership and roles."
     }
   ],
   "paths": {
@@ -452,6 +456,49 @@
         }
       }
     },
+    "/api/organizations/{organizationId}/members": {
+      "post": {
+        "tags": [
+          "Organization Members"
+        ],
+        "summary": "Add member",
+        "description": "Add a user to the organization (admin only).",
+        "operationId": "addMember",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddOrganizationMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMemberResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "tags": [
@@ -828,6 +875,91 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/BoardColumnResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/organizations/{organizationId}/members/{memberId}": {
+      "delete": {
+        "tags": [
+          "Organization Members"
+        ],
+        "summary": "Remove member",
+        "description": "Remove a member from the organization (admin only).",
+        "operationId": "removeMember",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Organization Members"
+        ],
+        "summary": "Update member role",
+        "description": "Update a member's role (admin only).",
+        "operationId": "updateMemberRole",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrganizationMemberRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationMemberResponse"
                 }
               }
             }
@@ -1348,6 +1480,74 @@
           "name"
         ]
       },
+      "AddOrganizationMemberRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email of the user to add",
+            "example": "member@example.com",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "description": "Role to assign (defaults to MEMBER)",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "example": "MEMBER"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "OrganizationMemberResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Membership ID",
+            "example": 12
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "User ID",
+            "example": 7
+          },
+          "email": {
+            "type": "string",
+            "description": "User email",
+            "example": "member@example.com"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "User display name",
+            "example": "Jane Doe"
+          },
+          "role": {
+            "type": "string",
+            "description": "Member role",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "example": "MEMBER"
+          },
+          "joinedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Joined timestamp",
+            "example": "2024-01-01T12:00:00Z"
+          }
+        }
+      },
       "RegisterRequest": {
         "type": "object",
         "properties": {
@@ -1557,6 +1757,24 @@
             "example": 2
           }
         }
+      },
+      "UpdateOrganizationMemberRoleRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "New role for the member",
+            "enum": [
+              "OWNER",
+              "ADMIN",
+              "MEMBER"
+            ],
+            "example": "ADMIN"
+          }
+        },
+        "required": [
+          "role"
+        ]
       },
       "Pageable": {
         "type": "object",
