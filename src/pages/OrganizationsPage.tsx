@@ -2,8 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { organizationApi, projectApi } from '../api/client';
-import { CreateOrganizationRequest, OrganizationResponse, ProjectResponse } from '../types/api';
+import { organizationApi, organizationMemberApi, projectApi } from '../api/client';
+import {
+  CreateOrganizationRequest,
+  OrganizationResponse,
+  OrganizationRole,
+  ProjectResponse
+} from '../types/api';
 
 export const OrganizationsPage = () => {
   const [selectedOrg, setSelectedOrg] = useState<number | null>(null);
@@ -28,9 +33,25 @@ export const OrganizationsPage = () => {
     enabled: Boolean(selectedOrg)
   });
 
+  const deleteProject = useMutation({
+    mutationFn: ({ organizationId, projectId }: { organizationId: number; projectId: number }) =>
+      projectApi.remove(organizationId, projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', selectedOrg] });
+    }
+  });
+
   const orgForm = useForm<CreateOrganizationRequest>({ defaultValues: { name: '' } });
 
   const organizations = useMemo(() => orgQuery.data || [], [orgQuery.data]);
+  const selectedOrganization = useMemo(
+    () => organizations.find((org) => org.id === selectedOrg),
+    [organizations, selectedOrg]
+  );
+  const selectedRole = selectedOrganization?.role;
+  const canManageMembers = isOrgAdmin(selectedRole);
+  const canDeleteProjects = isOrgAdmin(selectedRole);
+
   const projectsPage = projectsQuery.data;
   const projects = projectsPage?.items ?? [];
 
@@ -45,8 +66,8 @@ export const OrganizationsPage = () => {
           <h2>Organizations</h2>
           <span className="badge">Workspace</span>
         </div>
-        {orgQuery.isLoading && <p className="text-muted">Loading organizations…</p>}
-        {organizations.length === 0 && !orgQuery.isLoading && (
+        {orgQuery.isPending && <p className="text-muted">Loading organizations…</p>}
+        {organizations.length === 0 && !orgQuery.isPending && (
           <p className="text-muted">No organizations yet. Create your first workspace.</p>
         )}
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
@@ -59,6 +80,7 @@ export const OrganizationsPage = () => {
             >
               <div style={{ fontWeight: 700 }}>{org.name}</div>
               <div className="text-muted" style={{ fontSize: '0.9rem' }}>{org.description || 'No description'}</div>
+              {org.role && <div className="badge" style={{ marginTop: '0.5rem' }}>Role: {org.role}</div>}
             </button>
           ))}
         </div>
@@ -76,8 +98,8 @@ export const OrganizationsPage = () => {
               {...orgForm.register('description')}
             />
           </div>
-          <button className="button" type="submit" disabled={createOrg.isLoading}>
-            {createOrg.isLoading ? 'Creating…' : 'Create organization'}
+          <button className="button" type="submit" disabled={createOrg.isPending}>
+            {createOrg.isPending ? 'Creating…' : 'Create organization'}
           </button>
         </form>
       </div>
@@ -88,7 +110,15 @@ export const OrganizationsPage = () => {
           {selectedOrg && <span className="badge">Org #{selectedOrg}</span>}
         </div>
         {!selectedOrg && <p className="text-muted">Select an organization to view its projects.</p>}
-        {selectedOrg && projectsQuery.isLoading && <p className="text-muted">Loading projects…</p>}
+        {selectedOrganization && (
+          <p className="text-muted" style={{ marginTop: 0 }}>
+            Your role in this organization: <strong>{selectedOrganization.role ?? 'MEMBER'}</strong>.{' '}
+            {canDeleteProjects
+              ? 'You can create and delete projects.'
+              : 'Members can view and create projects but cannot delete projects.'}
+          </p>
+        )}
+        {selectedOrg && projectsQuery.isPending && <p className="text-muted">Loading projects…</p>}
         {selectedOrg && projectsQuery.data && projects.length === 0 && (
           <p className="text-muted">No projects yet. Create one below.</p>
         )}
@@ -111,6 +141,16 @@ export const OrganizationsPage = () => {
               >
                 Open board
               </button>
+              {canDeleteProjects && (
+                <button
+                  className="button secondary"
+                  style={{ marginTop: '0.5rem', width: '100%' }}
+                  onClick={() => deleteProject.mutate({ organizationId: project.organizationId, projectId: project.id })}
+                  disabled={deleteProject.isPending}
+                >
+                  Delete project
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -123,7 +163,7 @@ export const OrganizationsPage = () => {
               <button
                 className="button secondary"
                 type="button"
-                disabled={projectsPage.page === 0 || projectsQuery.isLoading}
+                disabled={projectsPage.page === 0 || projectsQuery.isPending}
                 onClick={() => setProjectPage((page) => Math.max(0, page - 1))}
               >
                 Previous
@@ -131,7 +171,7 @@ export const OrganizationsPage = () => {
               <button
                 className="button secondary"
                 type="button"
-                disabled={projectsPage.page >= projectsPage.totalPages - 1 || projectsQuery.isLoading}
+                disabled={projectsPage.page >= projectsPage.totalPages - 1 || projectsQuery.isPending}
                 onClick={() => setProjectPage((page) => page + 1)}
               >
                 Next
@@ -141,6 +181,13 @@ export const OrganizationsPage = () => {
         )}
         {selectedOrg && <ProjectCreateForm organizationId={selectedOrg} />}
       </div>
+
+      {selectedOrg && (
+        <OrganizationMembersCard
+          organizationId={selectedOrg}
+          canManageMembers={canManageMembers}
+        />
+      )}
     </div>
   );
 };
@@ -172,9 +219,123 @@ const ProjectCreateForm = ({ organizationId }: { organizationId: number }) => {
           {...register('description')}
         />
       </div>
-      <button className="button" type="submit" disabled={createProject.isLoading}>
-        {createProject.isLoading ? 'Creating…' : 'Create project'}
+      <button className="button" type="submit" disabled={createProject.isPending}>
+        {createProject.isPending ? 'Creating…' : 'Create project'}
       </button>
     </form>
   );
 };
+
+const OrganizationMembersCard = ({
+  organizationId,
+  canManageMembers
+}: {
+  organizationId: number;
+  canManageMembers: boolean;
+}) => {
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const addMemberForm = useForm<{ email: string; role: 'ADMIN' | 'MEMBER' }>({
+    defaultValues: { email: '', role: 'MEMBER' }
+  });
+  const updateRoleForm = useForm<{ memberId: number; role: 'ADMIN' | 'MEMBER' }>({
+    defaultValues: { role: 'MEMBER' }
+  });
+  const removeMemberForm = useForm<{ memberId: number }>({});
+
+  const addMember = useMutation({
+    mutationFn: (payload: { email: string; role: 'ADMIN' | 'MEMBER' }) =>
+      organizationMemberApi.add(organizationId, payload),
+    onSuccess: (member) => {
+      setFeedback(`Added ${member.email} as ${member.role}.`);
+      addMemberForm.reset({ email: '', role: 'MEMBER' });
+    }
+  });
+
+  const updateRole = useMutation({
+    mutationFn: (payload: { memberId: number; role: 'ADMIN' | 'MEMBER' }) =>
+      organizationMemberApi.updateRole(organizationId, payload.memberId, { role: payload.role }),
+    onSuccess: (member) => {
+      setFeedback(`Updated member #${member.id} role to ${member.role}.`);
+      updateRoleForm.reset({ role: 'MEMBER' });
+    }
+  });
+
+  const removeMember = useMutation({
+    mutationFn: (payload: { memberId: number }) => organizationMemberApi.remove(organizationId, payload.memberId),
+    onSuccess: () => {
+      setFeedback('Member removed successfully.');
+      removeMemberForm.reset();
+    }
+  });
+
+  return (
+    <div className="card">
+      <div className="section-title">
+        <h2>Organization members</h2>
+        <span className="badge">RBAC</span>
+      </div>
+      {!canManageMembers && (
+        <p className="text-muted">Only admins can manage organization members.</p>
+      )}
+      {feedback && <p className="text-muted">{feedback}</p>}
+      {canManageMembers && (
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+          <form onSubmit={addMemberForm.handleSubmit((values) => addMember.mutate(values))}>
+            <div className="form-row">
+              <label>Add member</label>
+              <input
+                className="input"
+                type="email"
+                placeholder="member@example.com"
+                {...addMemberForm.register('email', { required: true })}
+              />
+              <select className="input" {...addMemberForm.register('role')}>
+                <option value="MEMBER">MEMBER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+            <button className="button" type="submit" disabled={addMember.isPending}>
+              {addMember.isPending ? 'Adding…' : 'Add member'}
+            </button>
+          </form>
+
+          <form onSubmit={updateRoleForm.handleSubmit((values) => updateRole.mutate(values))}>
+            <div className="form-row">
+              <label>Update member role</label>
+              <input
+                className="input"
+                type="number"
+                placeholder="Member ID"
+                {...updateRoleForm.register('memberId', { required: true, valueAsNumber: true })}
+              />
+              <select className="input" {...updateRoleForm.register('role')}>
+                <option value="MEMBER">MEMBER</option>
+                <option value="ADMIN">ADMIN</option>
+              </select>
+            </div>
+            <button className="button secondary" type="submit" disabled={updateRole.isPending}>
+              {updateRole.isPending ? 'Saving…' : 'Update role'}
+            </button>
+          </form>
+
+          <form onSubmit={removeMemberForm.handleSubmit((values) => removeMember.mutate(values))}>
+            <div className="form-row">
+              <label>Remove member</label>
+              <input
+                className="input"
+                type="number"
+                placeholder="Member ID"
+                {...removeMemberForm.register('memberId', { required: true, valueAsNumber: true })}
+              />
+            </div>
+            <button className="button secondary" type="submit" disabled={removeMember.isPending}>
+              {removeMember.isPending ? 'Removing…' : 'Remove member'}
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const isOrgAdmin = (role?: OrganizationRole) => role === 'OWNER' || role === 'ADMIN';

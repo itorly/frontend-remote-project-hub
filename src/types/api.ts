@@ -33,6 +33,26 @@ export interface OrganizationResponse {
   role?: 'OWNER' | 'ADMIN' | 'MEMBER';
 }
 
+export type OrganizationRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+
+export interface OrganizationMemberResponse {
+  id: number;
+  userId: number;
+  email: string;
+  displayName: string;
+  role: OrganizationRole;
+  joinedAt: string;
+}
+
+export interface AddOrganizationMemberRequest {
+  email: string;
+  role: Extract<OrganizationRole, 'ADMIN' | 'MEMBER'>;
+}
+
+export interface UpdateOrganizationMemberRoleRequest {
+  role: Extract<OrganizationRole, 'ADMIN' | 'MEMBER'>;
+}
+
 export interface CreateOrganizationRequest {
   name: string;
   description?: string;
