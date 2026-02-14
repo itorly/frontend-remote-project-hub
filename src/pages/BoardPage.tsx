@@ -139,7 +139,7 @@ export const BoardPage = () => {
       <CreateColumnModal
         isOpen={isColumnModalOpen}
         onClose={() => setIsColumnModalOpen(false)}
-        isSubmitting={createColumn.isLoading}
+        isSubmitting={createColumn.isPending}
         onSubmit={(values) => createColumn.mutate(values)}
       />
 
@@ -147,7 +147,7 @@ export const BoardPage = () => {
         isOpen={isTaskModalOpen !== null}
         columnId={isTaskModalOpen}
         onClose={() => setIsTaskModalOpen(null)}
-        isSubmitting={createTask.isLoading}
+        isSubmitting={createTask.isPending}
         onSubmit={(values) => createTask.mutate(values)}
       />
     </div>
