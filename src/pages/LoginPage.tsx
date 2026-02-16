@@ -32,8 +32,8 @@ export const LoginPage = () => {
             <label>Password</label>
             <input className="input" type="password" {...register('password', { required: true })} />
           </div>
-          <button className="button" type="submit" disabled={mutation.isLoading}>
-            {mutation.isLoading ? 'Signing in…' : 'Login'}
+          <button className="button" type="submit" disabled={mutation.isPending}>
+            {mutation.isPending ? 'Signing in…' : 'Login'}
           </button>
         </form>
         {mutation.isError && (
