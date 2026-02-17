@@ -30,7 +30,7 @@ export interface OrganizationResponse {
   id: number;
   name: string;
   description?: string;
-  role?: 'OWNER' | 'ADMIN' | 'MEMBER';
+  role?: OrganizationRole;
 }
 
 export interface CreateOrganizationRequest {
@@ -38,9 +38,20 @@ export interface CreateOrganizationRequest {
   description?: string;
 }
 
+export type OrganizationRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+
 export interface UpdateOrganizationRequest {
   name: string;
   description?: string;
+}
+
+export interface AddOrganizationMemberRequest {
+  email: string;
+  role?: OrganizationRole;
+}
+
+export interface UpdateOrganizationMemberRoleRequest {
+  role: OrganizationRole;
 }
 
 export interface ProjectResponse {

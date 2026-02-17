@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
   ActivityLogResponse,
+  AddOrganizationMemberRequest,
   AuthResponse,
   BoardResponse,
   CreateColumnRequest,
@@ -17,6 +18,7 @@ import {
   RefreshRequest,
   RegisterRequest,
   TaskResponse,
+  UpdateOrganizationMemberRoleRequest,
   UpdateOrganizationRequest,
   UpdateColumnRequest,
   UpdateProjectRequest,
@@ -110,6 +112,24 @@ export const organizationApi = {
   },
   remove: async (organizationId: number) => {
     await api.delete(`/api/organizations/${organizationId}`);
+  }
+};
+
+
+
+export const organizationMemberApi = {
+  add: async (organizationId: number, payload: AddOrganizationMemberRequest) => {
+    await api.post(`/api/organizations/${organizationId}/members`, payload);
+  },
+  remove: async (organizationId: number, memberId: number) => {
+    await api.delete(`/api/organizations/${organizationId}/members/${memberId}`);
+  },
+  updateRole: async (
+    organizationId: number,
+    memberId: number,
+    payload: UpdateOrganizationMemberRoleRequest
+  ) => {
+    await api.patch(`/api/organizations/${organizationId}/members/${memberId}`, payload);
   }
 };
 
